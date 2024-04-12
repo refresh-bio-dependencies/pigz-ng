@@ -1,3 +1,5 @@
+all: ng_zlib pigz
+
 CC=gcc
 CFLAGS=-O3 -Wall -Wextra -Wno-unknown-pragmas -Wcast-qual
 LDFLAGS=
@@ -5,15 +7,20 @@ LDFLAGS=
 # LDFLAGS=-g -fsanitize=thread
 # CFLAGS=-O3 -Wall -Wextra -Wno-unknown-pragmas -Wcast-qual -g -fsanitize=address
 # LDFLAGS=-g -fsanitize=address
-LIBS=-lm -lpthread -lz
+ZLIB_DIR = zlib-ng
+LIBS=-lm -lpthread $(ZLIB_DIR)/libz.a
 ZOPFLI=zopfli/src/zopfli/
 ZOP=deflate.o blocksplitter.o tree.o lz77.o cache.o hash.o util.o squeeze.o katajainen.o symbols.o
 
 # use gcc and gmake on Solaris
 
-pigz: pigz.o yarn.o try.o $(ZOP)
-	$(CC) $(LDFLAGS) -o pigz pigz.o yarn.o try.o $(ZOP) $(LIBS)
-	ln -f pigz unpigz
+ng_zlib:
+	cd $(ZLIB_DIR) && ./configure --zlib-compat && $(MAKE)
+#	cp $(ZLIB_DIR)/libz.* $(LZANI_LIBS_DIR)
+
+pigz: pigz.o yarn.o try.o $(ZOP) ng_zlib
+	$(CC) $(LDFLAGS) -o pigz-ng pigz.o yarn.o try.o $(ZOP) $(LIBS)
+	ln -f pigz-ng unpigz
 
 pigz.o: pigz.c yarn.h try.h $(ZOPFLI)deflate.h $(ZOPFLI)util.h
 
@@ -108,4 +115,5 @@ pigz.pdf: pigz.1
 all: pigz pigzj pigzt pigzn docs
 
 clean:
-	@rm -f *.o pigz unpigz pigzj pigzn pigzt pigz.c.gz pigz.c.zz pigz.c.zip
+	cd $(ZLIB_DIR) && $(MAKE) -f Makefile.in clean
+	@rm -f *.o pigz unpigz pigzj pigzn pigzt pigz.c.gz pigz.c.zz pigz.c.zip pigz-ng
